@@ -1,0 +1,55 @@
+<!-- insérer juste après <body> -->
+
+<div class='viewport-full relative clip'>
+	<div class='viewport-twothirds viewport-full-ml relative'>
+		<div id='map' class='absolute top left right bottom'></div>
+	</div>
+</div>
+
+<!-- Début du script Javascript -->
+<script>
+	
+	// Établir quelques variables dont on aura besoin plus tard...
+	var clusterRadius = 40;
+	var clusterMaxZoom = 20;
+	var propertyToAggregate = "Rev"; // Nom de la variable à afficher telle que définie dans le fichier json
+	let data_url = 'geoJsonStatCanRev.geojson'; // Nom du fichier json
+	var mydata;
+	var currentZoom;
+	var color = 'RdYlGn';
+	var clusterData;
+	var colorStops;
+	var radiusStops;
+	var worldBounds = [-180,-90,180,90]
+
+	
+	// Configurer la carte, et établir son style...
+	
+	Light = "mapbox://styles/rodolpheg/cjoagnu9u1acs2sldkv9b3vut"
+	Dark  = "mapbox://styles/rodolpheg/cjoeq6sb506ir2rnn20d6yn06"
+	Minimo = "mapbox://styles/rodolpheg/cjmaw57ub2jb62rmnvr08w5tr"
+	Outdoors = "mapbox://styles/rodolpheg/cjoeqekb5061a2so0t6giee76"
+	
+	mapboxgl.accessToken = 'pk.eyJ1Ijoicm9kb2xwaGVnIiwiYSI6ImNqZjlzdnhndTBsdnMycW9mb3BpbHE4azMifQ._NTOVMlFUt17lxImA6WEIg';
+	var map = new mapboxgl.Map({
+		container: 'map',
+		style: Light,
+		center: [-100, 60],
+		zoom: 3,
+		hash: true
+	});
+	// ...charger la carte
+	map.on('style.load', function() {
+		
+		fetch(data_url)
+			.then(res => res.json())
+			.then((out) => {
+				mydata = out;
+				// Charger les donéées immédiatement
+				cluster.load(mydata.features);
+				// Créer la carte
+				initmap();
+			})
+			.catch(err => console.error(err));
+	});
+</script>

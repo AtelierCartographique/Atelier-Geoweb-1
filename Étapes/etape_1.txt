@@ -1,0 +1,12 @@
+<!-- Dans un fichier texte vierge -->
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset='utf-8' />
+	<title>Statcan rev.</title>
+</head>
+<body>
+Bonjour bonjour !
+</body>
+
+</html>

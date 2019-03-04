@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset='utf-8' />
+	<title>Statcan rev.</title>
+<!-- 	Ajout des bibliothèques ('libraries') dont nous aurons besoin -->
+	<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+	<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.47.0/mapbox-gl.js'></script>
+	<script src="https://npmcdn.com/@turf/turf/turf.min.js"></script>
+	<script src="https://unpkg.com/supercluster@3.0.2/dist/supercluster.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/1.3.4/chroma.min.js"></script>
+	<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.47.0/mapbox-gl.css' rel='stylesheet' />
+	<link href="https://api.mapbox.com/mapbox-assembly/v0.21.1/assembly.min.css" rel="stylesheet">
+	<script async defer src="https://api.mapbox.com/mapbox-assembly/v0.21.1/assembly.js"></script>
+</head>
+<body>
+
+	<!-- Titre et légende -->
+	<div class='viewport-full relative clip'>
+		<div class='viewport-twothirds viewport-full-ml relative'>
+			<div id='map' class='absolute top left right bottom'></div>
+		</div>
+		<div class='absolute top-ml left z1 w-full w300-ml px12 py12'>
+			<div class='viewport-third h-auto-ml hmax-full bg-gray-dark round-ml shadow-darken5 scroll-auto'>
+				<div class='p24 my6 mx6 scroll-auto color-white'>
+					<h5 class='txt-l txt-bold my6 mx12'>Revenus totaux moyens des ménages en 2015</h5>
+					<h5 class='txt-m txt-bold px12'>(source : recensement Statistiques Canada 2016)</h5>
+					
+					<div class='w240 round shadow-darken10 px12 py12 txt-s'>
+						<strong class='block mb6'>Revenus moyens en $</strong>
+						<div class='grid mb6'>
+							<div class='col bg-red-dark h12'></div>
+							<div class='col bg-orange-dark h12'></div>
+							<div class='col bg-orange-light h12'></div>
+							<div class='col bg-yellow-faint h12'></div>
+							<div class='col bg-green-faint h12'></div>
+							<div class='col bg-green-light h12'></div>
+							<div class='col bg-green h12'></div>
+							<div class='col bg-green-dark h12'></div>
+						</div>
+						<div class='grid txt-xs'>
+							<div class='col flex-child--grow'>Faible</div>
+							<div class='col flex-child--grow align-r'>Élevé</div>
+						</div>
+					</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	
+	<!-- Début du script Javascript -->
+	<script>
+		
+		// Établir quelques variables dont on aura besoin plus tard...
+		var clusterRadius = 40;
+		var clusterMaxZoom = 20;
+		var propertyToAggregate = "Rev"; // Nom de la variable à afficher telle que définie dans le fichier json
+		let data_url = 'geoJsonStatCan2.geojson'; // Nom du fichier json
+		var mydata;
+		var currentZoom;
+		var color = 'RdYlGn';
+		var clusterData;
+		var colorStops;
+		var radiusStops;
+		
+		// Configurer la carte, et établir son style...
+		
+		Light = "mapbox://styles/rodolpheg/cjoagnu9u1acs2sldkv9b3vut"
+		Dark  = "mapbox://styles/rodolpheg/cjoeq6sb506ir2rnn20d6yn06"
+		Minimo = "mapbox://styles/rodolpheg/cjmaw57ub2jb62rmnvr08w5tr"
+		Outdoors = "mapbox://styles/rodolpheg/cjoeqekb5061a2so0t6giee76"
+		
+		mapboxgl.accessToken = 'pk.eyJ1Ijoicm9kb2xwaGVnIiwiYSI6ImNqZjlzdnhndTBsdnMycW9mb3BpbHE4azMifQ._NTOVMlFUt17lxImA6WEIg';
+		var map = new mapboxgl.Map({
+			container: 'map',
+			style: Dark,
+			center: [-100, 60],
+			zoom: 3,
+			hash: true
+		});
+		// ...charger la carte
+		map.on('style.load', function() {
+			
+			fetch(data_url)
+				.then(res => res.json())
+				.then((out) => {
+					mydata = out;
+					// Charger les donéées immédiatement
+					cluster.load(mydata.features);
+					// Créer la carte
+					initmap();
+				})
+				.catch(err => console.error(err));
+		});
+
+		//Liste des fonctions qui seront utilisées dans notre script
+
+		// Fonction 'helper' permettant d'extraire certaines données (propriétés) du json
+		function getFeatureDomain(geojson_data, myproperty) {
+						
+			let data_domain = []
+			turf.propEach(geojson_data, function(currentProperties, featureIndex) {
+				data_domain.push(Number(currentProperties[myproperty]))
+			})
+			
+			return data_domain
+		}
+
+		function createColorStops(stops_domain, scale) {
+			let stops = []
+			stops_domain.forEach(function(d) {
+				stops.push([d, scale(d).hex()])
+			});
+			return stops
+		}
+
+		function createRadiusStops(stops_domain, min_radius, max_radius) {
+			let stops = []
+			let stops_len = stops_domain.length
+			let count = 1
+			stops_domain.forEach(function(d) {
+				stops.push([d, min_radius + (count / stops_len * (max_radius - min_radius))])
+				count += 1
+			});
+			return stops
+		}
+
+		// Configuration de l'algorithme de clustrering
+		var cluster = supercluster({
+			radius: clusterRadius,
+			maxZoom: clusterMaxZoom,
+			initial: function() {
+				return {
+					count: 0,
+					sum: 0,
+					min: Infinity,
+					max: -Infinity
+				};
+			},
+			map: function(properties) {				
+				return {
+					count: 1,
+					sum: Number(properties[propertyToAggregate]),
+					min: Number(properties[propertyToAggregate]),
+					max: Number(properties[propertyToAggregate])
+				};
+			},
+			reduce: function(accumulated, properties) {
+				accumulated.sum += Math.round(properties.sum * 100) / 100;
+				accumulated.count += properties.count;
+				accumulated.min = Math.round(Math.min(accumulated.min, properties.min) * 100) / 100;
+				accumulated.max = Math.round(Math.max(accumulated.max, properties.max) * 100) / 100;
+				accumulated.avg = Math.round(1 * accumulated.sum / accumulated.count) / 1;
+			}
+		});
+
+//		Mise à jour de la liste de points à afficher
+		function updateClusters(repaint) {
+			
+			currentZoom = map.getZoom(); //	Quel est le niveau de zoom actuel ?
+			canvas = map.getCanvas(); // Quelle est la taille de la carte à l'écran ?'
+			w = canvas.width / 2,
+			h = canvas.height / 2,
+			NW = map.unproject([0,0]).toArray(),
+			NE = map.unproject([w,0]).toArray(),
+			SE = map.unproject([w,h]).toArray(),
+			SW = map.unproject([0,h]).toArray();
+			worldBounds = [NW[0], SE[1], NE[0], NE[1]]; // Boite à l'intérieure de laquelle afficher les données
+			
+			// Récupérer les données agrégées sous forme de feature collection
+			clusterData = turf.featureCollection(cluster.getClusters(worldBounds, Math.floor(currentZoom)))			
+			// Données moyennées par la fonction getClusters
+			ftDomain1 = getFeatureDomain(clusterData, 'avg')
+			// DOnnées non moyennées
+			ftDomain2 = getFeatureDomain(clusterData, propertyToAggregate)
+			// Conjonction des deux jeux de données
+			ftDomain = ftDomain1.concat(ftDomain2);
+			
+			// Division équidistante des classes de revenus à visualiser ('q' pour une division par quantiles) https://gka.github.io/chroma.js/
+			let stops_domain = chroma.limits(ftDomain, 'e', 8)
+			
+			// Calcul de l'échelle des couleurs
+			var scale = chroma.scale(color).domain(stops_domain).mode('lab')
+			colorStops = createColorStops(stops_domain, scale)
+			// Calcul des tailles des disques
+			radiusStops = createRadiusStops(stops_domain, 10, clusterRadius);
+
+			// Mettre à jour l'affichage si besoin est (si zoom ou déplacement)
+			if (repaint) {
+				map.setPaintProperty('clusters', 'circle-color', {
+					property: 'avg',
+					stops: colorStops
+				});
+
+				map.setPaintProperty('clusters', 'circle-radius', {
+					property: 'avg',
+					stops: radiusStops
+				});
+				
+				map.setPaintProperty('unclustered-point', 'circle-color', {
+					property: propertyToAggregate,
+					stops: colorStops
+				});
+				
+				map.setPaintProperty('unclustered-point', 'circle-radius', {
+					property: propertyToAggregate,
+					stops: radiusStops
+				});
+			}
+		}
+
+		// fonction d'initialisation de la carte
+		function initmap() {
+
+			updateClusters(false);
+
+			// Ajout des données depuis le fichier json
+			map.addSource("rev-statcan", {
+				type: "geojson",
+				data: clusterData,
+				buffer: 1,
+				maxzoom: 20
+			});
+
+			// Ajout des disques pour les points agrégés
+			map.addLayer({
+				id: "clusters",
+				type: "circle",
+				source: "rev-statcan",
+				filter: ["has", "point_count"],
+				paint: {
+					"circle-color": {
+						property: 'avg',
+						stops: colorStops
+					},
+					"circle-blur": 0.5,
+					"circle-radius": {
+						property: 'avg',
+						type: "interval",
+						stops: radiusStops
+					}
+				}
+			}, "waterway-label");
+
+			// Ajout des disques pour les points non-agrégés
+			map.addLayer({
+				id: "unclustered-point",
+				type: "circle",
+				source: "rev-statcan",
+				filter: ["!has", "point_count"],
+				paint: {
+					"circle-color": {
+						property: propertyToAggregate,
+						stops: colorStops
+					},
+					"circle-radius": {
+						property: propertyToAggregate,
+						type: "interval",
+						stops: radiusStops
+					}
+				}
+			}, "waterway-label");
+
+			// Ajout du texte pour les points agrégés
+			map.addLayer({
+				id: "cluster-count",
+				type: "symbol",
+				source: "rev-statcan",
+				filter: ["has", "point_count"],
+				layout: {
+					"text-field": "$" + "{" + 'avg' + "}",
+					"text-font": ["DIN Offc Pro Regular", "Arial Unicode MS Bold"],
+					"text-size": 14,
+				},
+				paint: {
+					"text-color": "#ffffff",
+					"text-halo-color": "white",
+					"text-halo-width": 0
+				}
+			});
+			
+			// Ajout du texte pour les points non-agrégés		
+			map.addLayer({
+				id: "unclustered-count",
+				type: "symbol",
+				source: "rev-statcan",
+				filter: ["!has", "point_count"],
+				layout: {
+					"text-field": "$" + "{" + propertyToAggregate + "}",
+					"text-font": ["DIN Offc Pro Regular", "Arial Unicode MS Bold"],
+					"text-size": 14,
+				},
+				paint: {
+					"text-color": "#ffffff",
+					"text-halo-color": "white",
+					"text-halo-width": 0
+				}
+			});
+
+			// Détecter les zooms et déplacements, et rafraichir la fenêtre le cas échéant
+			map.on('zoom', function() {
+				newZoom = map.getZoom();
+
+				if (Math.floor(currentZoom) == 0) {
+					currentZoom = 1
+				};
+				
+				if (Math.floor(newZoom) != Math.floor(currentZoom)) {
+					currentZoom = newZoom
+					updateClusters(true);
+					map.getSource('rev-statcan').setData(clusterData)
+				}
+			})
+			map.on('moveend', function() {
+				updateClusters(true);
+				map.getSource('rev-statcan').setData(clusterData)
+			})
+		};
+		</script>
+</body>
+</html>

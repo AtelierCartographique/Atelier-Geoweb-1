@@ -1,0 +1,32 @@
+<!-- Titre et légende. Juste après  <body> -->
+<div class='viewport-full relative clip'>
+<div class='viewport-twothirds viewport-full-ml relative'>
+	<div id='map' class='absolute top left right bottom'></div>
+</div>
+<div class='absolute top-ml left z1 w-full w300-ml px12 py12'>
+	<div class='viewport-third h-auto-ml hmax-full bg-gray-dark round-ml shadow-darken5 scroll-auto'>
+		<div class='p24 my6 mx6 scroll-auto color-white'>
+			<h5 class='txt-l txt-bold my6 mx12'>Revenus totaux moyens des ménages en 2015</h5>
+			<h5 class='txt-m txt-bold px12'>(source : recensement Statistiques Canada 2016)</h5>
+			
+			<div class='w240 round shadow-darken10 px12 py12 txt-s'>
+				<strong class='block mb6'>Revenus moyens en $</strong>
+				<div class='grid mb6'>
+					<div class='col bg-red-dark h12'></div>
+					<div class='col bg-orange-dark h12'></div>
+					<div class='col bg-orange-light h12'></div>
+					<div class='col bg-yellow-faint h12'></div>
+					<div class='col bg-green-faint h12'></div>
+					<div class='col bg-green-light h12'></div>
+					<div class='col bg-green h12'></div>
+					<div class='col bg-green-dark h12'></div>
+				</div>
+				<div class='grid txt-xs'>
+					<div class='col flex-child--grow'>Faible</div>
+					<div class='col flex-child--grow align-r'>Élevé</div>
+				</div>
+			</div>
+			</div>
+		</div>
+	</div>
+</div>

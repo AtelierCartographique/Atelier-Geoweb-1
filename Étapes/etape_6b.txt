@@ -1,0 +1,5 @@
+// Nouvelle fonction après la function « map.on('zoom', function()) »
+map.on('moveend', function() {
+			updateClusters(true);
+			map.getSource('rev-statcan').setData(clusterData)
+		})

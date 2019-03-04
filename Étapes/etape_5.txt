@@ -1,0 +1,14 @@
+// Détecter les zooms, et rafraichir la fenêtre le cas échéant. Ajouter vers la fin, juste avant </script>
+map.on('zoom', function() {
+	newZoom = map.getZoom();
+
+	if (Math.floor(currentZoom) == 0) {
+		currentZoom = 1
+	};
+	
+	if (Math.floor(newZoom) != Math.floor(currentZoom)) {
+		currentZoom = newZoom
+		updateClusters(true);
+		map.getSource('rev-statcan').setData(clusterData)
+	}
+})

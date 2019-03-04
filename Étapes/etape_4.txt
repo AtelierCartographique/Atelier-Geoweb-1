@@ -1,0 +1,196 @@
+// Liste des fonctions qui seront utilisées dans notre script, à ajouter à la suite
+
+// Fonction 'helper' permettant d'extraire certaines données (propriétés) du json
+function getFeatureDomain(geojson_data, myproperty) {
+				
+	let data_domain = []
+	turf.propEach(geojson_data, function(currentProperties, featureIndex) {
+		data_domain.push(Number(currentProperties[myproperty]))
+	})
+	
+	return data_domain
+}
+
+function createColorStops(stops_domain, scale) {
+	let stops = []
+	stops_domain.forEach(function(d) {
+		stops.push([d, scale(d).hex()])
+	});
+	return stops
+}
+
+function createRadiusStops(stops_domain, min_radius, max_radius) {
+	let stops = []
+	let stops_len = stops_domain.length
+	let count = 1
+	stops_domain.forEach(function(d) {
+		stops.push([d, min_radius + (count / stops_len * (max_radius - min_radius))])
+		count += 1
+	});
+	return stops
+}
+
+// Configuration de l'algorithme de clustrering
+var cluster = supercluster({
+	radius: clusterRadius,
+	maxZoom: clusterMaxZoom,
+	initial: function() {
+		return {
+			count: 0,
+			sum: 0,
+			min: Infinity,
+			max: -Infinity
+		};
+	},
+	map: function(properties) {				
+		return {
+			count: 1,
+			sum: Number(properties[propertyToAggregate]),
+			min: Number(properties[propertyToAggregate]),
+			max: Number(properties[propertyToAggregate])
+		};
+	},
+	reduce: function(accumulated, properties) {
+		accumulated.sum += Math.round(properties.sum * 100) / 100;
+		accumulated.count += properties.count;
+		accumulated.min = Math.round(Math.min(accumulated.min, properties.min) * 100) / 100;
+		accumulated.max = Math.round(Math.max(accumulated.max, properties.max) * 100) / 100;
+		accumulated.avg = Math.round(1 * accumulated.sum / accumulated.count) / 1;
+	}
+});
+
+//		Mise à jour de la liste de points à afficher
+	function updateClusters(repaint) {
+		
+		currentZoom = map.getZoom(); //	Quel est le niveau de zoom actuel ?
+		
+		// Récupérer les données agrégées sous forme de feature collection
+		clusterData = turf.featureCollection(cluster.getClusters(worldBounds, Math.floor(currentZoom)))			
+		// Données moyennées par la fonction getClusters
+		ftDomain1 = getFeatureDomain(clusterData, 'avg')
+		// DOnnées non moyennées
+		ftDomain2 = getFeatureDomain(clusterData, 'Rev')
+		// Conjonction des deux jeux de données
+		ftDomain = ftDomain1.concat(ftDomain2);
+		
+		// Division équidistante des classes de revenus à visualiser ('q' pour une division par quantiles) https://gka.github.io/chroma.js/
+		let stops_domain = chroma.limits(ftDomain, 'e', 8)
+		
+		// Calcul de l'échelle des couleurs
+		var scale = chroma.scale(color).domain(stops_domain).mode('lab')
+		colorStops = createColorStops(stops_domain, scale)
+		// Calcul des tailles des disques
+		radiusStops = createRadiusStops(stops_domain, 10, clusterRadius);
+
+		// Mettre à jour l'affichage si besoin est (si zoom ou déplacement)
+		if (repaint) {
+			map.setPaintProperty('clusters', 'circle-color', {
+				property: 'avg',
+				stops: colorStops
+			});
+
+			map.setPaintProperty('clusters', 'circle-radius', {
+				property: 'avg',
+				stops: radiusStops
+			});
+			
+			map.setPaintProperty('unclustered-point', 'circle-color', {
+				property: propertyToAggregate,
+				stops: colorStops
+			});
+			
+			map.setPaintProperty('unclustered-point', 'circle-radius', {
+				property: propertyToAggregate,
+				stops: radiusStops
+			});
+		}
+	}
+
+
+// fonction d'initialisation de la carte
+function initmap() {
+
+	updateClusters(false);
+
+	// Ajout des données depuis le fichier json
+	map.addSource("rev-statcan", {
+		type: "geojson",
+		data: clusterData,
+		buffer: 1,
+		maxzoom: 20
+	});
+
+	// Ajout des disques pour les points agrégés
+	map.addLayer({
+		id: "clusters",
+		type: "circle",
+		source: "rev-statcan",
+		filter: ["has", "point_count"],
+		paint: {
+			"circle-color": {
+				property: 'avg',
+				stops: colorStops
+			},
+			"circle-blur": 0,
+			"circle-radius": {
+				property: 'avg',
+				type: "interval",
+				stops: radiusStops
+			}
+		}
+	}, "waterway-label");
+
+	// Ajout des disques pour les points non-agrégés
+	map.addLayer({
+		id: "unclustered-point",
+		type: "circle",
+		source: "rev-statcan",
+		filter: ["!has", "point_count"],
+		paint: {
+			"circle-color": {
+				property: propertyToAggregate,
+				stops: colorStops
+			},
+			"circle-radius": {
+				property: 'Rev',
+				type: "interval",
+				stops: radiusStops
+			}
+		}
+	}, "waterway-label");
+
+	// Ajout du texte pour les points agrégés
+	map.addLayer({
+		id: "cluster-count",
+		type: "symbol",
+		source: "rev-statcan",
+		filter: ["has", "point_count"],
+		layout: {
+			"text-field": "$" + "{" + 'avg' + "}",
+			"text-font": ["DIN Offc Pro Regular", "Arial Unicode MS Bold"],
+			"text-size": 13,
+		},
+		paint: {
+			"text-halo-color": "white",
+			"text-halo-width": 0,
+		}
+	});
+	
+	// Ajout du texte pour les points non-agrégés		
+	map.addLayer({
+		id: "unclustered-count",
+		type: "symbol",
+		source: "rev-statcan",
+		filter: ["!has", "point_count"],
+		layout: {
+			"text-field": "$" + "{" + "Rev" + "}",
+			"text-font": ["DIN Offc Pro Regular", "Arial Unicode MS Bold"],
+			"text-size": 13,
+		},
+		paint: {
+			"text-halo-color": "white",
+			"text-halo-width": 0
+		}
+	});
+
+};

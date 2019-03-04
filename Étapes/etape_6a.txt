@@ -1,0 +1,9 @@
+// Détecter les déplacements. Ajouter après « currentZoom = map.getZoom(); » dans la fonction « updateCluster »
+canvas = map.getCanvas();
+w = canvas.width / 2,
+h = canvas.height / 2,
+NW = map.unproject([0,0]).toArray(),
+NE = map.unproject([w,0]).toArray(),
+SE = map.unproject([w,h]).toArray(),
+SW = map.unproject([0,h]).toArray();
+worldBounds = [NW[0], SE[1], NE[0], NE[1]];
