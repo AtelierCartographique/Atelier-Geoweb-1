@@ -1,4 +1,5 @@
-<!-- Titre et légende. Juste après  <body> -->
+<!-- Titre et légende. Juste après  l'ouverture de balise <body> -->
+
 <div class='viewport-full relative clip'>
 <div class='viewport-twothirds viewport-full-ml relative'>
 	<div id='map' class='absolute top left right bottom'></div>
