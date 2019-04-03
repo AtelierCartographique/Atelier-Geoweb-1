@@ -1,7 +1,12 @@
 // Détecter les déplacements. Ajouter après « currentZoom = map.getZoom(); » dans la fonction « updateCluster »
+
 canvas = map.getCanvas();
-w = canvas.width / 2,
-h = canvas.height / 2,
+
+// diviser w et h par 2 pour rendre le code compatible avec Safari
+w = canvas.width / 1,
+h = canvas.height / 1,
+
+
 NW = map.unproject([0,0]).toArray(),
 NE = map.unproject([w,0]).toArray(),
 SE = map.unproject([w,h]).toArray(),
