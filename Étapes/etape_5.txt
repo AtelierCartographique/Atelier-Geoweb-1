@@ -1,4 +1,5 @@
-// Détecter les zooms, et rafraichir la fenêtre le cas échéant. Ajouter vers la fin, juste avant </script>
+// Détecter les zooms, et rafraichir la fenêtre le cas échéant. Ajouter vers la fin, juste avant la balise fermant le script
+
 map.on('zoom', function() {
 	newZoom = map.getZoom();
 
