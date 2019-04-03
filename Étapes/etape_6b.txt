@@ -1,4 +1,4 @@
-// Nouvelle fonction après la function « map.on('zoom', function()) »
+// Nouvelle fonction après l'ensemble « map.on('zoom', function()) » (ce genre d'ensembles s'ouvrent et se ferment respectivement avec les symboles "(" et ")"
 
 map.on('moveend', function() {
 			updateClusters(true);
