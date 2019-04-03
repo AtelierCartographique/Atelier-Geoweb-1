@@ -1,4 +1,4 @@
-// Liste des fonctions qui seront utilisées dans notre script, à ajouter à la suite
+// Liste des fonctions qui seront utilisées dans notre script, à ajouter à la suite des instruction précédentes
 
 // Fonction 'helper' permettant d'extraire certaines données (propriétés) du json
 function getFeatureDomain(geojson_data, myproperty) {
