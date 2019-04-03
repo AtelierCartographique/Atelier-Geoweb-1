@@ -1,4 +1,4 @@
-// Détecter les déplacements. Ajouter après « currentZoom = map.getZoom(); » dans la fonction « updateCluster »
+// Détecter les déplacements. À ajouter après « currentZoom = map.getZoom(); » dans la fonction « updateCluster » (les functions s'ouvrent et se ferment respectivement avec les symboles "{" et "}")
 
 canvas = map.getCanvas();
 
