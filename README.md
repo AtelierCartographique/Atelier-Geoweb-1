@@ -1,4 +1,4 @@
-# Atelier Géoweb #1
+# Geoweb (MapBox) : carte de points avec aggregation
 
 ## Description
 Fichiers sources de l'atelier géoweb donné dans le cadre de la journée des SIG 2018 au Département de géographie de l'Université de Montréal.
